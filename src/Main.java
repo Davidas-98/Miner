@@ -1,6 +1,7 @@
 import java.awt.*;
 import ore.Rock;
 
+import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.model.RS2Object;
@@ -13,6 +14,7 @@ import org.osbot.rs07.utility.ConditionalSleep;
 public class Main extends Script {
 
     public float timeStarting;
+    public String status;
     Area tinandcopper = new Area(3221, 3149, 3231, 3143);
     Area coal = new Area(3143, 3153, 3147, 3148);
     Area bank = new Area(3092, 3245, 3094, 3241);
@@ -42,10 +44,15 @@ public class Main extends Script {
             }
         } else if (getSkills().getDynamic(Skill.MINING) >= 30) {
             if (getInventory().getEmptySlotCount() == 0) {
-                bank();
+                if(!walk(bank)){
+                    bank();
+                } else{
+                    walk(bank);
+                }
             } else if (!walk(coal)) {
                 mine(Rock.COAL);
             } else{
+                log("at bank");
                 walk(coal);
             }
         }
@@ -74,14 +81,13 @@ public class Main extends Script {
     }
 
     public void bank() {
-        if (!walk(bank)) {
-            walk(bank);
-        } else {
             if (!getBank().isOpen()) {
                 try {
                     getBank().open();
+                    log("open bank");
                 } catch (InterruptedException e) {
                     e.printStackTrace();
+                    log(e.toString());
                 }
                 new ConditionalSleep(2500, 3000) {
                     @Override
@@ -93,12 +99,12 @@ public class Main extends Script {
             getBank().depositAllExcept(pickaxes);
             getBank().close();
             }
-        }
     }
 
     public void mine (Rock a){
         if (getInventory().contains(pickaxes)) {
             RS2Object ore = getObjects().closest(obj -> a.hasOre(obj));
+
             if (ore != null && ore.interact("Mine")) {
                 new ConditionalSleep(2000) {
                     @Override
