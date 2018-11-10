@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
-    <output url="file://$USER_HOME$/OSBot/Scripts" />
+    <output url="file://$USER_HOME$/OSBot/Scripts/Miner" />
     <output-test url="file://$MODULE_DIR$/out/test/Miner" />
     <exclude-output />
     <content url="file://$MODULE_DIR$">
@@ -10,5 +10,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="osbot" level="project" />
+    <orderEntry type="library" name="osbot 2.5.25" level="project" />
   </component>
 </module>

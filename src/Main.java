@@ -1,10 +1,13 @@
 import java.awt.*;
+import java.util.concurrent.TimeUnit;
+
 import ore.Rock;
 
 import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.model.RS2Object;
+import org.osbot.rs07.api.ui.EquipmentSlot;
 import org.osbot.rs07.api.ui.Skill;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
@@ -13,8 +16,13 @@ import org.osbot.rs07.utility.ConditionalSleep;
 @ScriptManifest(author = "You", info = "My first script", name = "Miner", version = 0, logo = "")
 public class Main extends Script {
 
-    public float timeStarting;
-    public String status;
+    public String status = "";
+    private long timeBegan;
+    private long timeRan;
+    private int coalCollected;
+    private long startAmount;
+
+    private final Font font = new Font("Calibri", Font.PLAIN, 12);
     Area tinandcopper = new Area(3221, 3149, 3231, 3143);
     Area coal = new Area(3143, 3153, 3147, 3148);
     Area bank = new Area(3092, 3245, 3094, 3241);
@@ -24,13 +32,15 @@ public class Main extends Script {
     @Override
     public void onStart() {
         log("Let's get started!");
-        timeStarting = System.currentTimeMillis();
-        new ConditionalSleep(2500, 3000) {
+        /*new ConditionalSleep(2500, 3000) {
             @Override
             public boolean condition() {
                 return myPlayer().isVisible();
             }
-        }.sleep();
+        }.sleep();*/
+        timeBegan = System.currentTimeMillis();
+        getExperienceTracker().start(Skill.MINING);
+        startAmount = getInventory().getAmount("Coal");
     }
 
     @Override
@@ -44,15 +54,11 @@ public class Main extends Script {
             }
         } else if (getSkills().getDynamic(Skill.MINING) >= 30) {
             if (getInventory().getEmptySlotCount() == 0) {
-                if(!walk(bank)){
-                    bank();
-                } else{
-                    walk(bank);
-                }
+                bank();
             } else if (!walk(coal)) {
+                update();
                 mine(Rock.COAL);
             } else{
-                log("at bank");
                 walk(coal);
             }
         }
@@ -61,18 +67,46 @@ public class Main extends Script {
 
     @Override
     public void onExit() {
-        log("Thanks for running my Tea Thiever!");
+        log("byebye");
     }
 
     @Override
     public void onPaint(Graphics2D g) {
         drawMouse(g);
-        g.drawString("lol",10,10);
-        g.drawString(getSkills().getDynamic(Skill.MINING) + "",10,300);
+
+        //setfont
+        g.setColor(Color.WHITE);
+        g.setFont(font);
+
+        timeRan = System.currentTimeMillis() - this.timeBegan;
+        //status
+        g.drawString(status, 420, 325);
+        //info
+        g.drawString("Coal miner ~ David", 15, 240);
+        g.drawString("Ore mined: " + coalCollected, 15, 265);
+        g.drawString("Time ran: " + ft(timeRan), 15, 280);
+        g.drawString("Mining XP | p/h: " + getExperienceTracker().getGainedXP(Skill.MINING) + " | "
+                + getExperienceTracker().getGainedXPPerHour(Skill.MINING), 15, 295);
+        g.drawString("TTL: " + ft(getExperienceTracker().getTimeToLevel(Skill.MINING)), 15, 310);
+        g.drawString("Levels gained | Current lvl: " + getExperienceTracker().getGainedLevels(Skill.MINING) + " | " + getSkills().getDynamic(Skill.MINING), 15, 325);
+    }
+
+    public void update(){
+            long amount = getInventory().getAmount("Coal");;
+            if(startAmount != amount) {
+                if (amount == 0)
+                {
+                    startAmount = amount;
+                } else {
+                    coalCollected += amount - startAmount;
+                    startAmount = amount;
+                }
+            }
     }
 
     public boolean drop () {
         if (getInventory().getEmptySlotCount() == 0) {
+            status = "Dropping ore..";
             getInventory().dropAllExcept(pickaxes);
             return true;
         } else {
@@ -81,10 +115,11 @@ public class Main extends Script {
     }
 
     public void bank() {
+        if(!walk(bank)){
             if (!getBank().isOpen()) {
                 try {
                     getBank().open();
-                    log("open bank");
+                    status = "Opening bank..";
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     log(e.toString());
@@ -96,22 +131,41 @@ public class Main extends Script {
                     }
                 }.sleep();
             } else {
-            getBank().depositAllExcept(pickaxes);
-            getBank().close();
+                if(getSkills().getDynamic(Skill.MINING) >= 41 ){
+                    if(getInventory().contains(1275)){
+                    } else{
+                        getBank().depositAll();
+                        getBank().withdraw(1275,1);
+                        getBank().close();
+                    }
+                }
+                    getBank().depositAllExcept(pickaxes);
+                    status = "Depositing ore..";
+                    getBank().close();
+
             }
+        } else {
+            status = "Walking to bank..";
+            walk(bank);
+        }
+
     }
 
     public void mine (Rock a){
         if (getInventory().contains(pickaxes)) {
             RS2Object ore = getObjects().closest(obj -> a.hasOre(obj));
 
-            if (ore != null && ore.interact("Mine")) {
-                new ConditionalSleep(2000) {
-                    @Override
-                    public boolean condition() {
-                        return myPlayer().isAnimating() || !ore.exists();
-                    }
-                }.sleep();
+            if (ore != null && ore.isVisible()) {
+                status = "Found ore..";
+                if (ore.interact("Mine")) {
+                    status = "Mining ore..";
+                    new ConditionalSleep(2000) {
+                        @Override
+                        public boolean condition() {
+                            return myPlayer().isAnimating() || !ore.exists();
+                        }
+                    }.sleep();
+                }
             }
         } else {
             stop();
@@ -146,6 +200,7 @@ public class Main extends Script {
             getSettings().setRunning(getSettings().getRunEnergy() < 25 ? false : true);
         }
         if (dismissRandom()) {
+            status = "Dismissing random..";
             while (myPlayer().isMoving()) {
                 try {
                     sleep(random(600, 800));
@@ -162,6 +217,7 @@ public class Main extends Script {
             getWalking().webWalk(area);
         }
         if (!getWalking().webWalk(area) ){
+            status = "Walking to destination..";
             getWalking().webWalk(area);
         } else{
             return false;
@@ -184,7 +240,18 @@ public class Main extends Script {
         return false;
     }
 
-
-
-
+    //Displays time from milliseconds to hour:minute:seconds
+    private String ft(long duration) {
+        String res = "";
+        long days = TimeUnit.MILLISECONDS.toDays(duration);
+        long hours = TimeUnit.MILLISECONDS.toHours(duration) - TimeUnit.DAYS.toHours(TimeUnit.MILLISECONDS.toDays(duration));
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(duration) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(duration));
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(duration) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(duration));
+        if (days == 0) {
+            res = (hours + ":" + minutes + ":" + seconds);
+        } else {
+            res = (days + ":" + hours + ":" + minutes + ":" + seconds);
+        }
+        return res;
+    }
 }
