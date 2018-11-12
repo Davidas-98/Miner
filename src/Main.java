@@ -45,16 +45,21 @@ public class Main extends Script {
 
     @Override
     public int onLoop() throws InterruptedException {
+        // check if mining tin or coal depending on level
         if (getSkills().getDynamic(Skill.MINING) < 30){
+            // if not in area
             if (!walk(tinandcopper)) {
-               drop();
+               checkBank();
                mine(Rock.TIN);
+               //else walk to area
             } else {
                 walk(tinandcopper);
             }
+            // check if mining tin or coal depending on level
         } else if (getSkills().getDynamic(Skill.MINING) >= 30) {
+            // if inventory full bank
             if (getInventory().getEmptySlotCount() == 0) {
-                bank();
+                checkBank();
             } else if (!walk(coal)) {
                 update();
                 mine(Rock.COAL);
@@ -114,7 +119,7 @@ public class Main extends Script {
         }
     }
 
-    public void bank() {
+    public void bank(int pick) {
         if(!walk(bank)){
             if (!getBank().isOpen()) {
                 try {
@@ -131,30 +136,31 @@ public class Main extends Script {
                     }
                 }.sleep();
             } else {
-                if(getSkills().getDynamic(Skill.MINING) >= 41 ){
-                    if(getInventory().contains(1275)){
-                    } else{
-                        getBank().depositAll();
-                        getBank().withdraw(1275,1);
-                        getBank().close();
-                    }
+                if (pick == pickaxes[0]){
+                    getBank().depositAll();
+                    getBank().withdraw(pick, 1);
+                    getBank().close();
+                } else if (pick == pickaxes[1])  {
+                    getBank().depositAll();
+                    getBank().withdraw(pick, 1);
+                    getBank().close();
                 }
+                else {
                     getBank().depositAllExcept(pickaxes);
                     status = "Depositing ore..";
                     getBank().close();
+                }
 
             }
         } else {
             status = "Walking to bank..";
             walk(bank);
         }
-
     }
 
     public void mine (Rock a){
         if (getInventory().contains(pickaxes)) {
             RS2Object ore = getObjects().closest(obj -> a.hasOre(obj));
-
             if (ore != null && ore.isVisible()) {
                 status = "Found ore..";
                 if (ore.interact("Mine")) {
@@ -170,6 +176,26 @@ public class Main extends Script {
         } else {
             stop();
         }
+    }
+
+        public void checkBank(){
+            if (getSkills().getDynamic(Skill.MINING) >= 41) {
+                if (!getInventory().contains(pickaxes[0])) {
+                    bank(pickaxes[0]);
+                } else {
+                    bank(0);
+                }
+            } else if (getSkills().getDynamic(Skill.MINING) >= 21 && getSkills().getDynamic(Skill.MINING) < 41 ){
+                if (!getInventory().contains(pickaxes[1])) {
+                    bank(pickaxes[1]);
+                } else if (getSkills().getDynamic(Skill.MINING) < 31) {
+                    drop();
+                } else {
+                    bank(0);
+                }
+            } else if (getSkills().getDynamic(Skill.MINING) >= 1 && getSkills().getDynamic(Skill.MINING) < 21){
+                drop();
+            }
         }
 
     public void drawMouse(Graphics graphics){
