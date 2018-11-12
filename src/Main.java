@@ -1,13 +1,11 @@
 import java.awt.*;
 import java.util.concurrent.TimeUnit;
 
-import ore.Rock;
+import asset.Rock;
 
-import org.osbot.rs07.api.Bank;
 import org.osbot.rs07.api.map.Area;
 import org.osbot.rs07.api.model.NPC;
 import org.osbot.rs07.api.model.RS2Object;
-import org.osbot.rs07.api.ui.EquipmentSlot;
 import org.osbot.rs07.api.ui.Skill;
 import org.osbot.rs07.script.Script;
 import org.osbot.rs07.script.ScriptManifest;
@@ -50,7 +48,7 @@ public class Main extends Script {
             // if not in area
             if (!walk(tinandcopper)) {
                checkBank();
-               mine(Rock.TIN);
+               mine(Rock.COPPER);
                //else walk to area
             } else {
                 walk(tinandcopper);
@@ -111,7 +109,7 @@ public class Main extends Script {
 
     public boolean drop () {
         if (getInventory().getEmptySlotCount() == 0) {
-            status = "Dropping ore..";
+            status = "Dropping asset..";
             getInventory().dropAllExcept(pickaxes);
             return true;
         } else {
@@ -147,7 +145,7 @@ public class Main extends Script {
                 }
                 else {
                     getBank().depositAllExcept(pickaxes);
-                    status = "Depositing ore..";
+                    status = "Depositing asset..";
                     getBank().close();
                 }
 
@@ -162,9 +160,9 @@ public class Main extends Script {
         if (getInventory().contains(pickaxes)) {
             RS2Object ore = getObjects().closest(obj -> a.hasOre(obj));
             if (ore != null && ore.isVisible()) {
-                status = "Found ore..";
+                status = "Found asset..";
                 if (ore.interact("Mine")) {
-                    status = "Mining ore..";
+                    status = "Mining asset..";
                     new ConditionalSleep(2000) {
                         @Override
                         public boolean condition() {

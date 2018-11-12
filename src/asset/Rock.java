@@ -1,4 +1,4 @@
-package ore;
+package asset;
 
 import org.osbot.rs07.api.model.Entity;
 
